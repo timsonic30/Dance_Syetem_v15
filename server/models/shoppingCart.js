@@ -1,15 +1,16 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
-const Member = require('./member');
+const Member = require("./member");
 
-const shoppingCartSchema = new Schema({
+const shoppingCartSchema = new Schema(
+  {
     productID: {
       type: Schema.Types.ObjectId,
       required: true,
     },
     collectionName: {
       type: String,
-      enum: ['danceclasses', 'roomrentals', 'payproducts'], // 根據需要列出可能的 collection
+      enum: ["danceclasses", "roomrentals", "payproducts"], // 根據需要列出可能的 collection
       required: true,
     },
     price: {
@@ -18,21 +19,39 @@ const shoppingCartSchema = new Schema({
     },
     shoppingType: {
       type: String,
-      enum: ['class', 'room rental', '1 Class Package', '10 Class Package', '1 Room Package', '10 Room Package'],
+      enum: [
+        "class",
+        "room rental",
+        "1 Class Package",
+        "5 Class Package",
+        "10 Class Package",
+        "15 Class Package",
+        "Monthly pass Package",
+        "1 Piece Package",
+        "2 Piece Package",
+        "3 Piece Package",
+        "1 Room Package",
+        "10 Room Package",
+        "T-shirt",
+        "Ticket",
+        "Gift",
+      ], //資料from ws: 2025/3/26 15:19
       required: true,
     },
     userID: {
       type: Schema.Types.ObjectId,
-      ref: 'Member',      
+      ref: "Member",
     },
     sessionID: {
-      type: String,      
-    }
-  }, {
+      type: String,
+    },
+  },
+  {
     timestamps: true,
-  });
-  
-const ShoppingCart =  mongoose.model('ShoppingCart', shoppingCartSchema);
+  }
+);
+
+const ShoppingCart = mongoose.model("ShoppingCart", shoppingCartSchema);
 
 // 創建新的購物車物件例子
 // const newShoppingCart = new ShoppingCart({
@@ -68,8 +87,4 @@ const ShoppingCart =  mongoose.model('ShoppingCart', shoppingCartSchema);
 //     console.error('查詢或填充時出現錯誤:', err);
 //   });
 
-
 module.exports = ShoppingCart;
-
-
-
