@@ -18,7 +18,7 @@ const danceClass = require("./routes/danceclass"); //課程的資料
 const teacherRouter = require("./routes/teacher"); // 老師的資料
 const staffRouter = require("./routes/staff"); // 職員的資料
 const payProductRouter = require("./routes/payProductRoutes"); //商品的資料
-const shoppingCartRoutes = require("./routes/shoppingCartRoutes"); //購物車的資料
+const shoppingCart = require("./routes/shoppingCartRoutes"); //購物車的資料
 
 app.use("/", indexRouter);
 app.use("/member", memberRouter);
@@ -26,7 +26,8 @@ app.use("/danceClass", danceClass);
 app.use("/teacher", teacherRouter);
 app.use("/staff", staffRouter);
 app.use("/payProduct", payProductRouter);
-app.use("/shoppingCart", shoppingCartRoutes);
+app.use("/shoppingCart", shoppingCart);
+
 app.listen(port, () => {
   console.log(`Server listening to ${port}`);
 });
