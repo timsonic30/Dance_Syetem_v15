@@ -87,6 +87,7 @@ export default function DanceInstructorProfile({
   const checkShoppingCart = () => {
     // 檢查是否已經有 Session ID
     let sessionId = Cookies.get('session_id');
+    
     if (sessionId) {
       // 如果有，則獲取購物車內容
       fetch(`http://localhost:3030/shoppingCart/getcart/${sessionId}`)
@@ -115,7 +116,7 @@ export default function DanceInstructorProfile({
       sessionId = generateSessionId();
       Cookies.set('session_id', sessionId);
     }
-    //將資料存入購物車DB
+    //將資料存入購物車DB    
     fetch("http://localhost:3030/shoppingCart/addtocart", {
       method: "POST",
       headers: {
