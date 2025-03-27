@@ -1,5 +1,91 @@
 import React, { useEffect, useState } from "react";
 import "./calendar2.css";
+import Cookies from "js-cookie";
+
+
+// Main Calendar2 Component
+export default function Calendar2 () {
+  const [currentStartDate, setCurrentStartDate] = useState(new Date("2025-03-13"));
+  const [events, setEvents] = useState([]); // Store formatted events
+  const [selectedEvent, setSelectedEvent] = useState(null); // Track selected event  
+  const [ cartCount, setCartCount ] = useState(); // Track the number of items in the cart
+
+  const generateSessionId = () => {
+    // 使用隨機數生成唯一的 Session ID
+    return 'session-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now();
+  }
+
+  const checkShoppingCart = () => {    
+    
+    // 檢查是否已經有 Session ID
+    let sessionId = Cookies.get('session_id');    
+    if (sessionId) {
+      // 如果有，則獲取購物車內容
+      fetch(`http://localhost:3030/shoppingCart/getcart/${sessionId}`)
+        .then((response) => {
+          if (response.ok) {
+            return response.json();
+          } else {
+            throw new Error('獲取購物車失敗');
+          }
+        })
+        .then((data) => {          
+          Cookies.set("shoppinglength", length);
+          setCartCount(data.length);               
+        })
+        .catch((error) => {
+          console.error('錯誤：', error);
+          // 處理錯誤（如顯示錯誤訊息）
+        });
+    }}
+
+  const handleAddToCart = (id, classprice) => {
+    // 檢查是否已經有 Session ID
+    let sessionId = Cookies.get('session_id');
+    if (!sessionId) {
+      // 如果沒有，則生成新的 Session ID 並存儲
+      sessionId = generateSessionId();
+      Cookies.set('session_id', sessionId);
+    }
+    //將資料存入購物車DB    
+    fetch("http://localhost:3030/shoppingCart/addtocart", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json", // 設置內容類型為 JSON        
+      },
+      body: JSON.stringify({
+        productID: id,
+        collectionName: 'danceclasses',
+        price: classprice,
+        shoppingType: 'class',
+        sessionID: sessionId, // 傳送 Session ID
+      }),
+    })
+      .then((response) => {
+        if (response.ok) {
+          return response.json();
+        } else {
+          throw new Error("預訂課程失敗");
+        }
+      })
+      .then((data) => {
+        console.log("預訂成功：", data);
+        // 成功後處理邏輯（如顯示成功訊息或更新畫面）
+        alert("已加購物車！");
+        checkShoppingCart(); // 確保更新購物車內容
+        //=======================
+         // 使用 window.dispatchEvent 觸發一個自定義事件
+    const event = new CustomEvent("userAddedCart", {
+      detail: { message: "refresh shopping Cart length" },
+    });
+    window.dispatchEvent(event);
+        //=========================
+      })
+      .catch((error) => {
+        console.error("錯誤：", error);
+        // 處理錯誤（如顯示錯誤訊息）
+      });
+  }
 
 // Utility function for room colors
 const getRoomColor = (room) => {
@@ -39,11 +125,174 @@ const formatLessonDuration = (durationArray) => {
   return `${formatDateTime(durationArray[0])} - ${formatDateTime(durationArray[1])}`;
 };
 
-// Main Calendar2 Component
-const Calendar2 = () => {
-  const [currentStartDate, setCurrentStartDate] = useState(new Date("2025-03-13"));
-  const [events, setEvents] = useState([]); // Store formatted events
-  const [selectedEvent, setSelectedEvent] = useState(null); // Track selected event
+// Timeline Component
+const Timeline = ({ startHour = 9, endHour = 24 }) => {
+  // Generate the time markers based on start and end hours
+  const timeMarkers = Array.from({ length: endHour - startHour + 1 }, (_, i) => {
+    const hour = startHour + i;
+    if (hour === 24) {
+      return "12 AM";
+    } else if (hour < 12) {
+      return `${hour} AM`;
+    } else if (hour === 12) {
+      return "12 PM";
+    } else {
+      return `${hour - 12} PM`;
+    }
+  });
+
+  return (
+    <div className="timeline">
+      {/* Spacer for alignment */}
+      <div className="spacer"></div>
+      {timeMarkers.map((time, index) => (
+        <div key={index} className="time-marker">
+          {time}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// BigClassDetailsContainer Component
+const BigClassDetailsContainer = ({ selectedEvent, userId }) => {
+  if (!selectedEvent) {
+    return <p>Please select an event to see its details.</p>;
+  }
+
+  // Destructure all properties from selectedEvent
+  const { Img, date, title, tutor, tutorIG, level, room, time, status, price, performDay, ClassType, lessonDuration } = selectedEvent;
+
+  return (
+    <div className="BigClassDetailsContainer">
+      {/* Header Section */}
+      <div className="header">
+        {`${date || "N/A"} ${title || "N/A"} - ${tutor || "N/A"} - ${ClassType || "Type:TBC"}`}
+      </div>
+
+      {/* Content Section */}
+      <div className="content">
+        <div className="table-image-container">
+          {/* Display Image or Fallback */}
+          {Img ? (
+            <img src={Img} className="tutorImg" alt={`Image of ${tutor || "Tutor"}`} />
+          ) : (
+            <p>No image available for the selected event.</p>
+          )}
+
+          {/* Event Details Table */}
+          <table>
+            <thead>
+              <tr>
+                <th>Tutor:{tutor || "N/A"}</th>
+                <th colSpan="3" className="th2">TutorIG:
+                  <a href={`https://instagram.com/${tutorIG || "defaultTutor"}`}>
+                    {tutorIG || "N/A"}
+                  </a>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Level: {level || "N/A"}</td>
+                <td>{room || "N/A"}</td>
+                <td>Status: {status || "N/A"}</td>
+              </tr>
+              <tr>
+                <td colSpan="3"> Time: {time || "N/A"}</td>
+              </tr>
+              <tr>
+                <td colSpan="3" className="">
+                  Lesson Duration: {lessonDuration || "TBC"}
+                </td>
+              </tr>
+              <tr>
+                <td colSpan="3" className="">
+                  Performance Day: {performDay || "N/A"}
+                </td>
+              </tr>
+              <tr>
+                <td className="btn-BookClass w-full" colSpan="3">
+                  <BookClass selectedEvent={selectedEvent} userId={userId} /> {/* Use the BookClass component */}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Book-class-BigClassDetailsContainer Component
+const BookClass = ({ selectedEvent, userId }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [ cartCount, setCartCount ] = useState();
+
+  // Function to handle booking
+  const handleBookClass = async () => {
+    
+    handleAddToCart(selectedEvent.ClassObjectId,selectedEvent.price)
+    // if (!selectedEvent || !userId) {
+    //   // Properly format and display the alert message
+    //   alert(
+    //     `Booking class:\nDetail: ${selectedEvent?.ClassObjectId || "N/A"}\nPrice: ${selectedEvent?.price || "N/A"}\nType: Class\nUserId: ${userId || "N/A"}`
+    //   );
+    //   return;
+    // }
+
+    const { ClassObjectId, price } = selectedEvent;
+
+    // Construct the booking details
+    // const bookingDetails = {
+    //   detail: ClassObjectId,
+    //   price: price || "N/A",
+    //   type: "Class", // Must be "Class"
+    //   userId, // User's ID
+    // };
+
+    // try {
+    //   setIsLoading(true); // Start loading
+    //   setMessage(""); // Clear previous messages
+
+    //   // const response = await fetch("http://localhost:3030/danceClass/bookingClass", {
+    //   //   method: "POST",
+    //   //   headers: {
+    //   //     "Content-Type": "application/json",
+    //   //   },
+    //   //   body: JSON.stringify(bookingDetails),
+    //   // });
+
+    //   if (!response.ok) {
+    //     throw new Error("Booking failed. Please try again later.");
+    //   }
+
+    //   const data = await response.json();
+    //   setMessage(`Booking Successful: ${data.message}`);
+    // } catch (error) {
+    //   console.error("Booking error:", error);
+    //   setMessage("Error: Unable to book the class. Please try again.");
+    // } finally {
+    //   setIsLoading(false); // Stop loading
+    // }
+  };
+
+  return (
+    <div className="w-full">
+      <button
+        onClick={handleBookClass}
+        disabled={isLoading}
+        className="btn-BookClass w-full"
+      >
+        {isLoading ? "Booking..." : "Book This Class"}
+      </button>
+
+      {/* Display the success or error message */}
+      {message && <p className="message">{message}</p>}
+    </div>
+  );
+};
 
   // Fetch events from the API
   useEffect(() => {
@@ -162,170 +411,6 @@ const Calendar2 = () => {
   );
 };
 
-// Timeline Component
-const Timeline = ({ startHour = 9, endHour = 24 }) => {
-  // Generate the time markers based on start and end hours
-  const timeMarkers = Array.from({ length: endHour - startHour + 1 }, (_, i) => {
-    const hour = startHour + i;
-    if (hour === 24) {
-      return "12 AM";
-    } else if (hour < 12) {
-      return `${hour} AM`;
-    } else if (hour === 12) {
-      return "12 PM";
-    } else {
-      return `${hour - 12} PM`;
-    }
-  });
 
-  return (
-    <div className="timeline">
-      {/* Spacer for alignment */}
-      <div className="spacer"></div>
-      {timeMarkers.map((time, index) => (
-        <div key={index} className="time-marker">
-          {time}
-        </div>
-      ))}
-    </div>
-  );
-};
+  
 
-// BigClassDetailsContainer Component
-const BigClassDetailsContainer = ({ selectedEvent, userId }) => {
-  if (!selectedEvent) {
-    return <p>Please select an event to see its details.</p>;
-  }
-
-  // Destructure all properties from selectedEvent
-  const { Img, date, title, tutor, tutorIG, level, room, time, status, price, performDay, ClassType, lessonDuration } = selectedEvent;
-
-  return (
-    <div className="BigClassDetailsContainer">
-      {/* Header Section */}
-      <div className="header">
-        {`${date || "N/A"} ${title || "N/A"} - ${tutor || "N/A"} - ${ClassType || "Type:TBC"}`}
-      </div>
-
-      {/* Content Section */}
-      <div className="content">
-        <div className="table-image-container">
-          {/* Display Image or Fallback */}
-          {Img ? (
-            <img src={Img} className="tutorImg" alt={`Image of ${tutor || "Tutor"}`} />
-          ) : (
-            <p>No image available for the selected event.</p>
-          )}
-
-          {/* Event Details Table */}
-          <table>
-            <thead>
-              <tr>
-                <th>Tutor:{tutor || "N/A"}</th>
-                <th colSpan="3" className="th2">TutorIG:
-                  <a href={`https://instagram.com/${tutorIG || "defaultTutor"}`}>
-                    {tutorIG || "N/A"}
-                  </a>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Level: {level || "N/A"}</td>
-                <td>{room || "N/A"}</td>
-                <td>Status: {status || "N/A"}</td>
-              </tr>
-              <tr>
-                <td colSpan="3"> Time: {time || "N/A"}</td>
-              </tr>
-              <tr>
-                <td colSpan="3" className="">
-                  Lesson Duration: {lessonDuration || "TBC"}
-                </td>
-              </tr>
-              <tr>
-                <td colSpan="3" className="">
-                  Performance Day: {performDay || "N/A"}
-                </td>
-              </tr>
-              <tr>
-                <td className="btn-BookClass" colSpan="3">
-                  <BookClass selectedEvent={selectedEvent} userId={userId} /> {/* Use the BookClass component */}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Book-class-BigClassDetailsContainer Component
-const BookClass = ({ selectedEvent, userId }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
-
-  // Function to handle booking
-  const handleBookClass = async () => {
-    if (!selectedEvent || !userId) {
-      // Properly format and display the alert message
-      alert(
-        `Booking class:\nDetail: ${selectedEvent?.ClassObjectId || "N/A"}\nPrice: ${selectedEvent?.price || "N/A"}\nType: Class\nUserId: ${userId || "N/A"}`
-      );
-      return;
-    }
-
-    const { ClassObjectId, price } = selectedEvent;
-
-    // Construct the booking details
-    const bookingDetails = {
-      detail: ClassObjectId,
-      price: price || "N/A",
-      type: "Class", // Must be "Class"
-      userId, // User's ID
-    };
-
-    try {
-      setIsLoading(true); // Start loading
-      setMessage(""); // Clear previous messages
-
-      const response = await fetch("http://localhost:3030/danceClass/bookingClass", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(bookingDetails),
-      });
-
-      if (!response.ok) {
-        throw new Error("Booking failed. Please try again later.");
-      }
-
-      const data = await response.json();
-      setMessage(`Booking Successful: ${data.message}`);
-    } catch (error) {
-      console.error("Booking error:", error);
-      setMessage("Error: Unable to book the class. Please try again.");
-    } finally {
-      setIsLoading(false); // Stop loading
-    }
-  };
-
-  return (
-    <div>
-      <button
-        onClick={handleBookClass}
-        disabled={isLoading}
-        className="btn-BookClass"
-      >
-        {isLoading ? "Booking..." : "Book This Class"}
-      </button>
-
-      {/* Display the success or error message */}
-      {message && <p className="message">{message}</p>}
-    </div>
-  );
-};
-
-export default Calendar2;

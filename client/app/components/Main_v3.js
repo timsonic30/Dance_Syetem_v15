@@ -9,7 +9,7 @@ import Calendar2 from "./Calendar2";
 
 export default function Main_v3() {
   const [currentSlide, setCurrentSlide] = useState(0);
-
+  
   // 圖片列表
   const images = [
     "/Banner01.jpeg",
@@ -118,10 +118,12 @@ export default function Main_v3() {
             ))}
           </div>
         </div>
-
+        
         <div className="mt-16">
-          <Calendar2 />
+        <Calendar2 />
         </div>
+
+        
 
         <div className="w-full max-w-7xl mx-auto px-4 py-4 mt-10 mb-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
@@ -148,6 +150,8 @@ export default function Main_v3() {
             ))}
           </div>
         </div>
+
+        
 
         <section className="bg-gray-100 py-12 px-4 w-full mt-8">
           <div className="max-w-7xl mx-auto ">
@@ -235,6 +239,8 @@ export default function Main_v3() {
           </div>
         </section>
 
+        
+
         <footer className="w-full bg-white">
           <div className="max-w-6xl mx-auto px-8 py-8">
             {/* Contact Information */}
@@ -278,8 +284,8 @@ export default function Main_v3() {
 
             {/* Map */}
             <div className="w-full h-[300px] relative mb-6 border">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2610.043200080611!2d114.22529194567278!3d22.30984491457273!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x340401454cafe9d5%3A0x7f7349c38db1146c!2z5oiQ5qWt5bel5qWt5aSn5buI!5e0!3m2!1sja!2sjp!4v1742801987411!5m2!1sja!2sjp"
+              <iframe              
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3691.1256452417715!2d114.22492317522898!3d22.3110874425045!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x340401413b19e527%3A0x5f6c4cca8aa97c00!2z6KeA5aGY5bel5qWt5Lit5b-D77ya56ysMuacnw!5e0!3m2!1szh-TW!2shk!4v1743037645488!5m2!1szh-TW!2shk"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
@@ -296,6 +302,8 @@ export default function Main_v3() {
             </div>
           </div>
         </footer>
+
+        
       </div>
     </div>
   );
