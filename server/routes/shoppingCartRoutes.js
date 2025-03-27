@@ -2,6 +2,12 @@ const express = require("express");
 const router = express.Router();
 const ShoppingCart = require("../models/shoppingCart");
 const Authorization = require("../middlewares/authorization");
+const DanceClass = require("../models/danceClass");
+const Transaction = require("../models/transaction");
+const RoomRental = require("../models/roomRental");
+const PayProduct = require("../models/payProduct");
+const { isObjectIdOrHexString } = require("mongoose");
+
 
 //==================================================
 //tutor-BookThisClassButton, data輸入db
@@ -32,6 +38,7 @@ router.post("/addtocart", async (req, res) => {
 });
 
 //==================================================
+//顯示shoppingcart collection資料
 router.get("/getcart/:sessionID", async (req, res) => {
     try {
         const { sessionID } = req.params;
@@ -42,6 +49,55 @@ router.get("/getcart/:sessionID", async (req, res) => {
         res.status(500).send({ error: 'Failed to get data.' });
     }
 })
+
+//==========================================
+//根據現時shopping cart裡面的item去找資料
+router.post('/cartdata/:collectionName', async (req, res) => {    
+    const { collectionName } = req.params; // Get collectionName from URL
+    const { productID, ShoppingCartid } = req.body;       // Get productID from request body    
+    console.log('collectionName from DB:', collectionName);
+    console.log('productID from DB:', productID);
+
+    const modelMapping = {
+        danceclasses: DanceClass,
+        roomrentals: RoomRental,
+        payproducts: PayProduct
+    };
+
+    try {
+        const conllectionMap = modelMapping[collectionName];
+        const results = await conllectionMap.find({            
+            _id: productID
+        });
+        
+        if (results.length === 0) {
+            console.log('找不到資料')
+            return res.status(404).json({ response:'ok', message: 'No data found for the given collectionName and productID' });
+        }
+        console.log('找到資料')
+        res.status(200).json({ response:'ok', data: results , shoppingCartid: ShoppingCartid });
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+//==================================================
+//刪除shopping cart裡面的item
+router.delete("/delete/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedItem = await ShoppingCart.findByIdAndDelete(id);
+        if (!deletedItem) {
+            return res.status(404).send({ error: "Item not found" });
+        }
+        res.status(200).send(deletedItem);
+    } catch (error) {
+        console.error('Error deleting data:', error);
+        res.status(500).send({ error: 'Failed to delete data.' });
+    }
+})
+
 
 //==================================================
 // 創建新的購物車物件例子
