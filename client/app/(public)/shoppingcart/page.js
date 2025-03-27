@@ -4,9 +4,140 @@ import Image from "next/image"
 import { useEffect, useState } from "react";
 
 export default function ShoppingCart() {
-
   const [ cartData, setCartData ] = useState();
+  const [ eachCartData, setEachCartData ] = useState(null);
+  // const resultArray = []; // 創建一個外部陣列來存儲數據
+  const [resultArray, setResultArray] = useState([]);
+  const [ cartCount, setCartCount ] = useState();
+  const [ total, setTotal ] = useState(0);
 
+// 刪除購物車內容
+const handleDelete = (shoppingCartid) => {
+  // 發送 DELETE 請求
+  fetch(`http://localhost:3030/shoppingcart/delete/${shoppingCartid}`, {
+    method: 'DELETE',
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('刪除成功:', data);
+      checkShoppingCart();
+      const event = new CustomEvent("userAddedCart", {
+        detail: { message: "refresh shopping Cart length" },
+      });
+      window.dispatchEvent(event);
+    })
+    .catch(error => {
+      console.error('刪除失敗:', error);
+    });
+}
+
+//計算總價
+ const totalPrices = (resultArray) => {
+    let total = 0;    
+    resultArray.map((item) => {
+      console.log('item:', item.data[0].price);
+      total += item.data[0].price;
+    });    
+    setTotal(total);    
+    return total;
+  }
+
+
+  //作為記錄, 不要刪除================================
+  // const renderCartData = (resultArray) => {    
+  //   resultArray.map((item) => {
+  //     console.log(item)
+  //     return(
+  //       <div className="flex items-center justify-between py-4 border-b border-gray-100">
+  //       <div className="flex items-center gap-4">
+  //         <div className="w-16 h-16 relative flex-shrink-0">
+  //           <img
+  //             src={item.data[0].img}
+  //             alt={item.data[0].code}
+  //             width={64}
+  //             height={64}
+  //             className="object-contain"
+  //           />
+  //         </div>
+  //         <div>
+  //           <h3 className="font-medium text-gray-900">{item.data[0].code}</h3>
+  //           <p className="text-amber-700">HK$ {item.data[0].price}</p>
+  //         </div>
+  //       </div>
+        
+  //       {/* 右側刪除按鈕 */}
+  //           <div
+  //         className="bg-[#FF9933] text-white w-12 h-12 flex items-center justify-center rounded"
+  //         onClick={() => handleDelete(item.shoppingCartid)} // 點擊刪除
+  //       >
+  //         <svg
+  //           xmlns="http://www.w3.org/2000/svg"
+  //           className="h-6 w-6 cursor-pointer"
+  //           fill="none"
+  //           viewBox="0 0 24 24"
+  //           stroke="currentColor"
+  //           strokeWidth={2}
+  //         >
+  //           <path
+  //             strokeLinecap="round"
+  //             strokeLinejoin="round"
+  //             d="M6 18L6 9M10 18L10 9M14 18L14 9M18 18L18 9M4 6h16M9 6v-2a1 1 0 011-1h4a1 1v2m-7 0h6"
+  //           />
+  //         </svg>
+  //           </div>
+  //       </div>
+  //     )
+  //   });
+  // };
+  //=================================================================================================
+
+  
+  const tempArray = [];
+  // 將購物車內容的每個項目發送到後端
+  const runArray = (dataArray) => {     
+    const promises = dataArray.map(item => {
+      const collectionName = item.collectionName;
+      const productID = item.productID;
+      
+  
+      // 發送 POST 請求
+      return fetch(`http://localhost:3030/shoppingcart/cartdata/${collectionName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          productID: productID,
+          ShoppingCartid: item._id
+        })
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Failed to fetch: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          tempArray.push(data); // 將數據推入陣列          
+        })
+        .catch(error => {
+          console.error(`Error fetching data for ${collectionName}:`, error);
+        });
+    });  
+    // 等待所有請求完成後返回結果數據
+    return Promise.all(promises).then(() => {
+      setResultArray(tempArray)
+      }).then(() => {
+        totalPrices(tempArray)})
+  }
+  
+
+    //將有關shoppingcart的data從server端取回
     const checkShoppingCart = () => {
       // 檢查是否已經有 Session ID
       let sessionId = Cookies.get('session_id');
@@ -21,8 +152,10 @@ export default function ShoppingCart() {
             }
           })
           .then((data) => {
-            console.log('購物車內容在購物車頁面：', data);                    
+            setCartCount(data.length);               
+            //console.log('購物車內容在購物車頁面：', data);                    
             setCartData(data);
+            runArray(data)
           })
           .catch((error) => {
             console.error('錯誤：', error);
@@ -31,8 +164,9 @@ export default function ShoppingCart() {
       }
     }
 
+
   useEffect(() => {  
-    checkShoppingCart();
+    checkShoppingCart();       
   }, []);
     
 
@@ -40,79 +174,55 @@ export default function ShoppingCart() {
     <div className="max-w-3xl mx-auto bg-white rounded-lg border border-gray-400 shadow-lg py-14 px-20 mt-16">
       <div className="mb-6">
         <h2 className="text-xl font-medium text-gray-800 border-b border-gray-200 pb-2 mb-4">Shopping Cart</h2>
-
+      
         <div className="space-y-4">
-          {/* First Ristretto Item */}
-          <div className="flex items-center justify-between py-4 border-b border-gray-100">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 relative flex-shrink-0">
-                <Image
-                  src="/placeholder.svg?height=64&width=64"
-                  alt="Ristretto coffee capsule"
-                  width={64}
-                  height={64}
-                  className="object-contain"
-                />
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">Ristretto</h3>
-                <p className="text-amber-700">HK$ 8.50 (10 × HK$ 0.85)</p>
-              </div>
-            </div>
-            <div className="bg-[#FF9933] text-white w-12 h-12 flex items-center justify-center rounded">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L6 9M10 18L10 9M14 18L14 9M18 18L18 9M4 6h16M9 6v-2a1 1 0 011-1h4a1 1 0 011 1v2m-7 0h6"
-                />
-              </svg>
-            </div>
 
+        {/*在這裡插入*/}
+        {resultArray.map((item,index) => {      
+      return(
+        <div key={index} className="flex items-center justify-between py-4 border-b border-gray-100 mt-2">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 relative flex-shrink-0 mt-2 mb-2">
+            <img
+              src={item.data[0].img}
+              alt={item.data[0].code}
+              width={64}
+              height={64}
+              className="object-contain"
+            />
           </div>
-
-          {/* Second Ristretto Item */}
-          <div className="flex items-center justify-between py-4 border-b border-gray-100">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 relative flex-shrink-0">
-                <Image
-                  src="/placeholder.svg?height=64&width=64"
-                  alt="Ristretto coffee capsule"
-                  width={64}
-                  height={64}
-                  className="object-contain"
-                />
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">Ristretto</h3>
-                <p className="text-amber-700">HK$ 8.50 (10 × HK$ 0.85)</p>
-              </div>
-            </div>
-            <div className="bg-[#FF9933] text-white w-12 h-12 flex items-center justify-center rounded">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L6 9M10 18L10 9M14 18L14 9M18 18L18 9M4 6h16M9 6v-2a1 1 0 011-1h4a1 1 0 011 1v2m-7 0h6"
-                />
-              </svg>
-            </div>
-
+          <div>
+            <h3 className="font-medium text-gray-900">{item.data[0].code}</h3>
+            <p className="text-amber-700">HK$ {item.data[0].price}</p>
           </div>
+        </div>
+        
+        {/* 右側刪除按鈕 */}
+            <div
+          className="bg-[#FF9933] text-white w-12 h-12 flex items-center justify-center rounded"
+          onClick={() => handleDelete(item.shoppingCartid)} // 點擊刪除
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6 cursor-pointer"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18L6 9M10 18L10 9M14 18L14 9M18 18L18 9M4 6h16M9 6v-2a1 1 0 011-1h4a1 1v2m-7 0h6"
+            />
+          </svg>
+            </div>
+        </div>
+      )
+    })}
+        
+
+
         </div>
       </div>
 
@@ -121,7 +231,7 @@ export default function ShoppingCart() {
 
         <div className="flex justify-between items-center">
           <h3 className="font-medium text-gray-900">Total</h3>
-          <p className="font-medium text-amber-700">HK$ 468.50</p>
+          <p className="font-medium text-amber-700">HK$ {total}</p>
         </div>
         <p className="text-sm text-gray-500">(Excludes Tax)</p>
 
